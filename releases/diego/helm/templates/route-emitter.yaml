@@ -125,8 +125,12 @@ spec:
           secret:
             secretName: {{ default "uaa" .Values.routeEmitter.uaaCertificateSecret }}
         - name: routing-api
+{{- if .Values.routeEmitter.routingApi.enabled }}
           secret:
-            secretName: {{ default "routing-api" .Values.routeEmitter.routingApiCertificateSecret }}
+            secretName: {{ default "routing-api" .Values.routeEmitter.routingApi.certificateSecret }}
+{{- else }}
+          emptyDir: {}
+{{- end }}
         - name: route-emitter-config
           configMap:
             name: route-emitter-configmap
