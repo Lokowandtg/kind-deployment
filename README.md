@@ -55,6 +55,7 @@ You can configure the installation by setting the environment variable `INSTALL_
 ## Read More Documentation
 
 - [Local Development Guide](docs/local-development-guide.md)
+- [Running integration tests of cf-java-client](docs/cf-java-client.md)
 - [FAQs](docs/faq.md)
 
 ## Contributing

@@ -4,6 +4,8 @@ global:
 image:
   repository: bitnamilegacy/postgresql
 primary:
+  extendedConfiguration: |-
+    max_connections = 200
   initdb:
     scripts:
       init.sh: |
