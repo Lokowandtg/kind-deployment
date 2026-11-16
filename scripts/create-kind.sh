@@ -26,31 +26,59 @@ EOF
     done
 }
 
-setup_registry_caches() {
-    echo "Starting registry pull-through caches with docker-compose..."
-    docker compose -p cache -f "${script_full_path}/docker-compose-registries.yaml" --progress plain up -d
+evaluate_docker_progress_option() {
+  # Detect container runtime behind docker (Docker vs Podman)
+  if echo $(docker version) | grep -qi 'Podman'; then
+    echo ""
+  else
+    echo "--progress plain"
+  fi
+}
 
-    configure_registry_mirror "docker-io" "https://registry-1.docker.io" "docker.io"
-    configure_registry_mirror "ghcr-io" "https://ghcr.io" "ghcr.io"
-    configure_registry_mirror "quay-io" "https://quay.io" "quay.io"
+setup_registry_caches() {
+  echo "Starting registry pull-through caches with docker-compose..."
+  docker compose -p cache -f "${script_full_path}/docker-compose-registries.yaml" $(evaluate_docker_progress_option) up -d
+
+  configure_registry_mirror "docker-io" "https://registry-1.docker.io" "docker.io"
+  configure_registry_mirror "ghcr-io" "https://ghcr.io" "ghcr.io"
+  configure_registry_mirror "quay-io" "https://quay.io" "quay.io"
 }
 
 setup_nfs() {
-    echo "Starting NFS server with docker-compose..."
-    docker compose -p nfs -f "${script_full_path}/docker-compose-nfs.yaml" --progress plain up -d
+  echo "Starting NFS server with docker-compose..."
+  docker compose -p nfs -f "${script_full_path}/docker-compose-nfs.yaml" $(evaluate_docker_progress_option) up -d
+}
+
+setupCloudProviderKind() {
+  echo "Setting up cloud provider for kind..."
+  docker compose -p cloud-provider -f "${script_full_path}/docker-compose-cloud-provider.yaml" $(evaluate_docker_progress_option) up -d
 }
 
 script_full_path=$(dirname "$0")
 
 tools::install::kind
 tools::install::kubectl
+tools::install::yq
 
 if kind get clusters | grep -q "cfk8s"; then
   echo "Kind cluster 'cfk8s' already exists."
   exit 0
 fi
 
-kind create cluster --name "cfk8s" --config="$script_full_path/../kind.yaml"
+kind_config="$script_full_path/../kind.yaml"
+if [ "${CNI}" = "calico" ]; then
+  echo "Removing networking.kubeProxyMode from kind config for Calico CNI..."
+  yq eval 'del(.networking.kubeProxyMode)' "$kind_config" > "$kind_config.tmp"
+  kind_config="$kind_config.tmp"
+fi
+
+kind create cluster --name "cfk8s" --config=$kind_config
+
+# masked sysfs blocks user namespaces, remove when https://github.com/kubernetes-sigs/kind/issues/3436 is fixed.
+for node in $(kind get nodes --name cfk8s); do
+  docker exec "$node" sh -c \
+    'mkdir -p /unmasked-sys && mount -t sysfs -o ro sysfs /unmasked-sys'
+done
 
 echo "Applying taints to workload nodes..."
 kubectl taint nodes -l cloudfoundry.org/cell=true cloudfoundry.org/cell=true:NoSchedule --overwrite || true
@@ -68,3 +96,4 @@ if [ "${INSTALL_OPTIONAL_COMPONENTS:-true}" = "true" ]; then
   setup_nfs
 fi
 
+setupCloudProviderKind

@@ -4,15 +4,18 @@ set -e
 set -o pipefail
 
 # renovate: dataSource=github-releases depName=helmfile/helmfile
-export HELMFILE_VERSION="1.5.5"
+export HELMFILE_VERSION="1.8.4"
 # renovate: dataSource=github-releases depName=helm/helm
-export HELM_VERSION="4.2.2"
+export HELM_VERSION="4.3.2"
 # renovate: dataSource=github-releases depName=kubernetes-sigs/kind
-export KIND_VERSION="0.32.0"
+export KIND_VERSION="0.33.0"
 # renovate: dataSource=github-releases depName=kubernetes/kubectl
 export KUBECTL_VERSION="1.36.2"
 # renovate: dataSource=github-releases depName=google/go-containerregistry
-export CRANE_VERSION="0.21.7"
+export CRANE_VERSION="0.22.1"
+# renovate: dataSource=github-releases depName=mikefarah/yq
+export YQ_VERSION="4.54.3"
+
 export TOOLS_BIN_DIR="$(realpath $(dirname "${BASH_SOURCE[0]}"))/../bin"
 
 function tools::export_path() {
@@ -142,4 +145,22 @@ function tools::install::crane() {
 
     echo "Installing crane from ${url}..."
     curl -sSL -o - "${url}" | tar -xz -C "${TOOLS_BIN_DIR}" crane
+}
+
+function tools::install::yq() {
+    tools::export_path
+
+    local bin="${TOOLS_BIN_DIR}/yq"
+    if [[ -x "${bin}" ]] && "${bin}" --version 2>/dev/null | grep -q "v4\."; then
+        return 0
+    fi
+
+    local os=$(util::tools::os)
+    local arch=$(util::tools::arch)
+    local url="https://github.com/mikefarah/yq/releases/download/v${YQ_VERSION}/yq_${os}_${arch}"
+    mkdir -p "${TOOLS_BIN_DIR}"
+
+    echo "Installing yq from ${url}..."
+    curl -sSL -o "${TOOLS_BIN_DIR}/yq" "${url}"
+    chmod +x "${TOOLS_BIN_DIR}/yq"
 }

@@ -2,3 +2,8 @@ caCert: ""
 caKey: ""
 tlsCert: ""
 tlsKey: ""
+cni: ""
+systemDomain: ""
+appsDomain: ""
+gateway:
+  infrastructure: {}

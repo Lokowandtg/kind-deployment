@@ -12,10 +12,12 @@
       "managerFilePatterns": [
         "/^versions.yaml$/",
         "/^Makefile$/",
-        "/^\\.github/workflows/.+\\.yaml$/"
+        "/^\\.github/workflows/.+\\.yaml$/",
+        "/^scripts/tools.sh$/"
       ],
       "matchStrings": [
-        "# renovate: dataSource=(?<datasource>.*?) depName=(?<depName>.*?)( packageName=(?<packageName>.*?))?\\s+\\S+?(: | = | \\?= )\"?(?<currentValue>\\d+\\.\\d+\\.\\d+)\"?"
+        "# renovate: dataSource=(?<datasource>.*?) depName=(?<depName>.*?)( packageName=(?<packageName>.*?))?\\s+\\S+?(: | = | \\?= )\"?(?<currentValue>\\d+\\.\\d+\\.\\d+)\"?",
+        "# renovate: dataSource=(?<datasource>.*?) depName=(?<depName>.*?)\\sexport .*?_VERSION=\"(?<currentValue>.*)\""
       ],
       "extractVersionTemplate": "^v?(?<version>.*)$"
     }
@@ -24,6 +26,11 @@
     "enabled": false
   },
   "packageRules": [
+    {
+      "description": "cloud-provider-kind >= 0.12.0 publishes LB ports on random host ports, which breaks access via 127.0.0.1:443",
+      "matchPackageNames": ["registry.k8s.io/cloud-provider-kind/cloud-controller-manager"],
+      "allowedVersions": "<0.12.0"
+    },
     {
       "matchUpdateTypes": ["minor", "patch"],
       "automerge": true
